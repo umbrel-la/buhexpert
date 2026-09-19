@@ -43,10 +43,16 @@ export function AiAssistant({ onSubscribe, onConsult }: { onSubscribe: (location
   const resetLimit = async () => { await fetch("/api/chat", { method: "DELETE" }); setRemaining(3); reset(); };
 
   return <section className="card ai" id="ai">
-    <div className="owl" aria-hidden="true">🦉</div><h1>Не нашли ответ? Спросите БухЭксперта</h1>
-    <p className="lead">AI-помощник найдёт решение по материалам БухЭксперта и подскажет подходящую инструкцию в 1С.</p>
-    <div className="ask-row"><input id="question" value={question} maxLength={600} onChange={(e) => setQuestion(e.target.value)} onKeyDown={keydown} disabled={loading || remaining === 0} placeholder="Например: как отразить лизинг в 1С?" aria-label="Вопрос AI-помощнику" />
-      <button className="primary-btn ask-button" disabled={loading || question.trim().length < 4 || remaining === 0} onClick={() => submit()}>{loading ? "Ищу…" : "Найти решение"}</button></div>
+    <div className="ai-orbit" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span></div>
+    <div className="ai-kicker"><span className="ai-kicker-dot" />БУХЭКСПЕРТ AI · ПОИСК ПО БАЗЕ ЗНАНИЙ</div>
+    <div className="ai-heading"><div><h1>Спросите — и получите готовое решение</h1>
+      <p className="lead">AI-помощник ищет по материалам БухЭксперта, объясняет логику учёта и находит нужную инструкцию в 1С.</p></div>
+      <div className="owl" aria-hidden="true">✦</div></div>
+    <div className="ask-shell">
+      <span className="ask-icon" aria-hidden="true">⌕</span>
+      <input id="question" value={question} maxLength={600} onChange={(e) => setQuestion(e.target.value)} onKeyDown={keydown} disabled={loading || remaining === 0} placeholder="Например: как отразить лизинг в 1С?" aria-label="Вопрос AI-помощнику" />
+      <button className="primary-btn ask-button" disabled={loading || question.trim().length < 4 || remaining === 0} onClick={() => submit()}>{loading ? "Ищу…" : <><span>Спросить AI</span><b>↗</b></>}</button>
+    </div>
     <div className="chips">{suggestions.map((item) => <button className="chip" key={item} disabled={loading || remaining === 0} onClick={() => { setQuestion(item); submit(item); }}>{item}</button>)}</div>
     <div className="ai-meta"><span>Осталось бесплатных вопросов: <b>{remaining}</b></span>{demoMode && <span className="demo-label">Демонстрационный режим</span>}
       {process.env.NODE_ENV === "development" && <button className="reset-limit" onClick={resetLimit}>Сбросить demo-лимит</button>}</div>

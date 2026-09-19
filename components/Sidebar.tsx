@@ -11,6 +11,7 @@ export function Sidebar({ onSubscribe, onConsult }: { onSubscribe: (location: st
     {groups.map(([title, ...items]) => <div className="side-group" key={title}><div className="side-title">{title}</div>{items.map((item) =>
       <a className="side-link" href="#" key={item} onClick={(e) => { e.preventDefault(); if (item === "Индивидуальные консультации") onConsult("sidebar"); }}>{item}</a>
     )}</div>)}
+    <div className="side-group"><div className="side-title">База знаний</div><a className="side-link" href="/articles/os-v-1c-8-3">Статьи</a></div>
     <div className="side-spacer" />
     <button className="side-buy primary" onClick={() => onSubscribe("sidebar")}>Купить подписку</button>
     <button className="side-buy demo" onClick={() => onSubscribe("sidebar_demo")}>Получить демо</button>

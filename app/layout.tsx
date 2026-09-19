@@ -1,0 +1,15 @@
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "БухЭксперт — AI-помощник по 1С",
+  description: "Демонстрационный AI-помощник по материалам БухЭксперта",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html lang="ru">
+      <body>{children}</body>
+    </html>
+  );
+}

@@ -14,7 +14,13 @@ export function AppShell() {
   const consult = (location: string) => { trackEvent("ai_consultation_click", { button_location: location }); setModal("consultation"); };
   return <>
     <Header onSubscribe={subscribe} />
-    <div className="layout"><Sidebar onSubscribe={subscribe} onConsult={consult} /><main className="main"><AiAssistant onSubscribe={subscribe} onConsult={consult} /><ContentFeed /></main><RightEventsColumn /></div>
+    <div className="dashboard">
+      <Sidebar onSubscribe={subscribe} onConsult={consult} />
+      <main className="workspace">
+        <AiAssistant onSubscribe={subscribe} onConsult={consult} />
+        <div className="insight-grid"><div className="feed-stack"><ContentFeed /></div><RightEventsColumn /></div>
+      </main>
+    </div>
     <button className="helper" onClick={() => consult("owl_widget")}><i>🦉</i><span><b>Сова-помощник</b>Нужна консультация?</span></button>
     {modal === "subscription" && <SubscriptionModal onClose={() => setModal(null)} />}
     {modal === "consultation" && <ConsultationModal onClose={() => setModal(null)} />}

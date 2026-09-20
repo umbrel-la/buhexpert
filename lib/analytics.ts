@@ -3,7 +3,9 @@ export type AnalyticsEvent =
   | "ai_source_click" | "ai_paywall_view" | "ai_subscription_click"
   | "ai_consultation_click" | "ai_consultation_submit" | "ai_free_limit_reached"
   | "article_view" | "article_ai_widget_view" | "article_ai_question_submit"
-  | "article_ai_answer_shown" | "article_paywall_view" | "article_full_access_click";
+  | "article_ai_answer_shown" | "article_paywall_view" | "article_full_access_click"
+  | "personalized_answer_open" | "personalized_paywall_view" | "personalized_full_access_click"
+  | "consultation_click";
 
 type Params = Partial<{
   query_category: string;

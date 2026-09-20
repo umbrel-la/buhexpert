@@ -4,6 +4,7 @@ import { KeyboardEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import type { ChatResponse } from "@/types";
 import { trackEvent } from "@/lib/analytics";
+import { getPersonalizedAnswer, savePersonalizedAnswer } from "@/lib/personalized-answer";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { AiAnswer } from "./AiAnswer";
@@ -30,6 +31,10 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
     const normalized = value.trim();
     if (loading || normalized.length < 4) return;
     if (!remaining) { onSubscribe("article_limit"); return; }
+    const saved = getPersonalizedAnswer();
+    if (saved?.articleSlug === slug && saved.question.toLocaleLowerCase() === normalized.toLocaleLowerCase()) {
+      setAsked(normalized); setQuestion(normalized); setAnswer(saved.answer); setRemaining(saved.answer.remainingQueries); return;
+    }
     setAsked(normalized); setQuestion(normalized); setLoading(true); setError(""); setAnswer(null);
     trackEvent("article_ai_question_submit", { article_slug: slug, remaining_queries: remaining });
     try {
@@ -38,6 +43,7 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
       if (response.status === 429) { setRemaining(0); onSubscribe("article_limit"); return; }
       if (!response.ok) throw new Error(data.error || "Не удалось получить ответ.");
       setAnswer(data); setRemaining(data.remainingQueries);
+      savePersonalizedAnswer({ question: normalized, answer: data, articleSlug: slug, savedAt: new Date().toISOString() });
       trackEvent("article_ai_answer_shown", { article_slug: slug, remaining_queries: data.remainingQueries, answer_confidence: data.confidence });
       trackEvent("article_paywall_view", { article_slug: slug, remaining_queries: data.remainingQueries });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось получить ответ."); } finally { setLoading(false); }
@@ -57,7 +63,7 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
       <button className="article-ai-button" onClick={() => submit()} disabled={loading || !remaining || question.trim().length < 4}>{loading ? "Ищу…" : compact ? "Задать вопрос AI" : "Спросить AI"}</button></div>
     {!compact && <div className="article-ai-chips">{suggested.map((item) => <button key={item} onClick={() => { setQuestion(item); submit(item); }} disabled={loading || !remaining}>{item}</button>)}</div>}
     <small>Осталось бесплатных вопросов: {remaining}. Ответы доступны по демонстрационной подборке материалов. {remaining === 0 && <button className="article-reset-limit" onClick={resetLimit}>Сбросить 3 вопроса</button>}</small>
-    {(asked || error) && <div className="article-ai-result">{error && <p className="article-ai-error">{error}</p>}{answer && <AiAnswer question={asked} answer={answer} onReset={reset} onSubscribe={() => { trackEvent("article_full_access_click", { article_slug: slug }); onSubscribe("article_answer"); }} onConsult={() => onConsult("article_answer")} />}</div>}
+    {(asked || error) && <div className="article-ai-result">{error && <p className="article-ai-error">{error}</p>}{answer && <><Link className="personalized-link" href="/personalized-answers">Открыть персональный ответ</Link><AiAnswer question={asked} answer={answer} onReset={reset} onSubscribe={() => { trackEvent("article_full_access_click", { article_slug: slug }); onSubscribe("article_answer"); }} onConsult={() => onConsult("article_answer")} /></>}</div>}
   </section>;
 }
 

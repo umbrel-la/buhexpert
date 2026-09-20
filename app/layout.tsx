@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./redesign.css";
 import "./article.css";
+import "./article-fixes.css";
 import "./personalized.css";
 
 export const metadata: Metadata = {

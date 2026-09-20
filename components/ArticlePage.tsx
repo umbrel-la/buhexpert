@@ -2,6 +2,7 @@
 
 import { KeyboardEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ChatResponse } from "@/types";
 import { trackEvent } from "@/lib/analytics";
 import { getPersonalizedAnswer, savePersonalizedAnswer } from "@/lib/personalized-answer";
@@ -13,8 +14,8 @@ import { ConsultationModal, SubscriptionModal } from "./Modals";
 const slug = "os-v-1c-8-3";
 const suggested = ["Как принять ОС с дополнительными расходами?", "Какие документы проверить перед принятием ОС?", "Как проверить параметры амортизации?"];
 
-function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onSubscribe: (location: string) => void; onConsult: (location: string) => void }) {
-  const [question, setQuestion] = useState(compact ? "" : "Например: как принять к учету основное средство с дополнительными расходами?");
+function ArticleAi({ compact, initialQuestion, onSubscribe, onConsult }: { compact?: boolean; initialQuestion?: string; onSubscribe: (location: string) => void; onConsult: (location: string) => void }) {
+  const [question, setQuestion] = useState(compact ? "" : initialQuestion || "Например: как принять к учету основное средство с дополнительными расходами?");
   const [asked, setAsked] = useState("");
   const [answer, setAnswer] = useState<ChatResponse | null>(null);
   const [remaining, setRemaining] = useState(3);
@@ -61,13 +62,15 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
     {compact && <div><b>Остались вопросы по вашей ситуации в 1С?</b><p>Получите персональный ответ по материалам БухЭксперта.</p></div>}
     <div className="article-ai-form"><input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={keydown} disabled={loading || !remaining} placeholder="Например: как принять к учету основное средство?" aria-label="Вопрос AI по статье" />
       <button className="article-ai-button" onClick={() => submit()} disabled={loading || !remaining || question.trim().length < 4}>{loading ? "Ищу…" : compact ? "Задать вопрос AI" : "Спросить AI"}</button></div>
-    {!compact && <div className="article-ai-chips">{suggested.map((item) => <button key={item} onClick={() => { setQuestion(item); submit(item); }} disabled={loading || !remaining}>{item}</button>)}</div>}
+    <div className="article-ai-chips">{(compact ? suggested.slice(0, 2) : suggested).map((item) => <button key={item} onClick={() => { setQuestion(item); submit(item); }} disabled={loading || !remaining}>{item}</button>)}</div>
     <small>Осталось бесплатных вопросов: {remaining}. Ответы доступны по демонстрационной подборке материалов. {remaining === 0 && <button className="article-reset-limit" onClick={resetLimit}>Сбросить 3 вопроса</button>}</small>
     {(asked || error) && <div className="article-ai-result">{error && <p className="article-ai-error">{error}</p>}{answer && <><Link className="personalized-link" href="/personalized-answers">Открыть персональный ответ</Link><AiAnswer question={asked} answer={answer} onReset={reset} onSubscribe={() => { trackEvent("article_full_access_click", { article_slug: slug }); onSubscribe("article_answer"); }} onConsult={() => onConsult("article_answer")} /></>}</div>}
   </section>;
 }
 
 export function ArticlePage() {
+  const searchParams = useSearchParams();
+  const initialQuestion = searchParams.get("question") || undefined;
   const [modal, setModal] = useState<"subscription" | "consultation" | null>(null);
   const subscribe = (location: string) => { trackEvent("ai_subscription_click", { button_location: location, article_slug: slug }); setModal("subscription"); };
   const consult = (location: string) => { trackEvent("ai_consultation_click", { button_location: location, article_slug: slug }); setModal("consultation"); };
@@ -77,7 +80,7 @@ export function ArticlePage() {
     <article className="article-body"><h1>Принятие к учету ОС в 1С 8.3: пошаговая инструкция</h1><p className="article-intro">Разбираем, какие документы и параметры полезно проверить перед тем, как принять основное средство к учету в программе.</p>
       <p>В статье показан демонстрационный ориентир для работы в 1С:Бухгалтерии 3.0. Точный порядок зависит от вашей версии программы, настроек учета и первичных документов.</p>
       <h2 id="what-you-learn">Что вы узнаете из статьи</h2><ul><li>какие исходные документы подготовить;</li><li>какие параметры объекта проверить перед проведением;</li><li>как проконтролировать результат в программе.</li></ul>
-      <ArticleAi onSubscribe={subscribe} onConsult={consult} />
+      <ArticleAi initialQuestion={initialQuestion} onSubscribe={subscribe} onConsult={consult} />
       <h2 id="before-start">Что проверить перед принятием ОС к учету</h2><p>Сначала сопоставьте сведения в первичных документах с карточкой объекта: организацию, дату, наименование, единицу учета и ответственное лицо. Если в стоимость входят связанные расходы, убедитесь, что есть понятное основание и комплект подтверждающих документов.</p>
       <div className="article-warning"><b>Важно.</b> Не используйте эту демонстрационную статью как замену проверки учетной политики и первичных документов. При нестандартной ситуации уточните конфигурацию 1С.</div>
       <h2 id="document">Документ принятия к учету</h2><p>Откройте подходящий раздел программы и создайте либо проверьте документ принятия к учету. Заполняйте реквизиты на основании документов по объекту, а перед проведением внимательно проверьте дату и выбранные параметры учета.</p>

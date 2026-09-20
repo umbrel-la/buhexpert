@@ -19,7 +19,13 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
   const [remaining, setRemaining] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { trackEvent("article_ai_widget_view", { article_slug: slug }); fetch("/api/chat").then((r) => r.json()).then((d) => setRemaining(d.remainingQueries)).catch(() => {}); }, []);
+  useEffect(() => {
+    trackEvent("article_ai_widget_view", { article_slug: slug });
+    fetch("/api/chat").then((r) => r.json()).then((d) => setRemaining(d.remainingQueries)).catch(() => {});
+    const syncQuota = (event: Event) => setRemaining((event as CustomEvent<number>).detail ?? 3);
+    window.addEventListener("buhexpert-quota-reset", syncQuota);
+    return () => window.removeEventListener("buhexpert-quota-reset", syncQuota);
+  }, []);
   const submit = async (value = question) => {
     const normalized = value.trim();
     if (loading || normalized.length < 4) return;
@@ -38,13 +44,19 @@ function ArticleAi({ compact, onSubscribe, onConsult }: { compact?: boolean; onS
   };
   const keydown = (event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && submit();
   const reset = () => { setAnswer(null); setAsked(""); setQuestion(""); setError(""); };
+  const resetLimit = async () => {
+    const response = await fetch("/api/chat", { method: "DELETE" });
+    if (!response.ok) return;
+    setRemaining(3); reset();
+    window.dispatchEvent(new CustomEvent("buhexpert-quota-reset", { detail: 3 }));
+  };
   return <section className={`article-ai ${compact ? "article-ai-compact" : ""}`}>
     {!compact && <><span className="article-ai-label">AI-ПОМОЩНИК БУХЭКСПЕРТА</span><h2>Нужен ответ для вашей ситуации?</h2><p>Спросите AI-помощника БухЭксперта. Он подберет решение по материалам базы знаний.</p></>}
     {compact && <div><b>Остались вопросы по вашей ситуации в 1С?</b><p>Получите персональный ответ по материалам БухЭксперта.</p></div>}
     <div className="article-ai-form"><input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={keydown} disabled={loading || !remaining} placeholder="Например: как принять к учету основное средство?" aria-label="Вопрос AI по статье" />
       <button className="article-ai-button" onClick={() => submit()} disabled={loading || !remaining || question.trim().length < 4}>{loading ? "Ищу…" : compact ? "Задать вопрос AI" : "Спросить AI"}</button></div>
     {!compact && <div className="article-ai-chips">{suggested.map((item) => <button key={item} onClick={() => { setQuestion(item); submit(item); }} disabled={loading || !remaining}>{item}</button>)}</div>}
-    <small>Осталось бесплатных вопросов: {remaining}. Ответы доступны по демонстрационной подборке материалов.</small>
+    <small>Осталось бесплатных вопросов: {remaining}. Ответы доступны по демонстрационной подборке материалов. {remaining === 0 && <button className="article-reset-limit" onClick={resetLimit}>Сбросить 3 вопроса</button>}</small>
     {(asked || error) && <div className="article-ai-result">{error && <p className="article-ai-error">{error}</p>}{answer && <AiAnswer question={asked} answer={answer} onReset={reset} onSubscribe={() => { trackEvent("article_full_access_click", { article_slug: slug }); onSubscribe("article_answer"); }} onConsult={() => onConsult("article_answer")} />}</div>}
   </section>;
 }

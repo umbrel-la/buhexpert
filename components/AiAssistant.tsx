@@ -19,6 +19,9 @@ export function AiAssistant({ onSubscribe, onConsult }: { onSubscribe: (location
   useEffect(() => {
     trackEvent("ai_assistant_view");
     fetch("/api/chat").then((res) => res.json()).then((data) => { setRemaining(data.remainingQueries); setDemoMode(data.demoMode); }).catch(() => {});
+    const syncQuota = (event: Event) => setRemaining((event as CustomEvent<number>).detail ?? 3);
+    window.addEventListener("buhexpert-quota-reset", syncQuota);
+    return () => window.removeEventListener("buhexpert-quota-reset", syncQuota);
   }, []);
 
   const submit = async (value = question) => {
@@ -40,7 +43,12 @@ export function AiAssistant({ onSubscribe, onConsult }: { onSubscribe: (location
   };
   const reset = () => { setAsked(""); setAnswer(null); setError(""); setQuestion(""); document.querySelector<HTMLInputElement>("#question")?.focus(); };
   const keydown = (event: KeyboardEvent<HTMLInputElement>) => { if (event.key === "Enter") submit(); };
-  const resetLimit = async () => { await fetch("/api/chat", { method: "DELETE" }); setRemaining(3); reset(); };
+  const resetLimit = async () => {
+    const response = await fetch("/api/chat", { method: "DELETE" });
+    if (!response.ok) return;
+    setRemaining(3); reset();
+    window.dispatchEvent(new CustomEvent("buhexpert-quota-reset", { detail: 3 }));
+  };
 
   return <section className="card ai" id="ai">
     <div className="ai-orbit" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span></div>
@@ -55,11 +63,11 @@ export function AiAssistant({ onSubscribe, onConsult }: { onSubscribe: (location
     </div>
     <div className="chips">{suggestions.map((item) => <button className="chip" key={item} disabled={loading || remaining === 0} onClick={() => { setQuestion(item); submit(item); }}>{item}</button>)}</div>
     <div className="ai-meta"><span>Осталось бесплатных вопросов: <b>{remaining}</b></span>{demoMode && <span className="demo-label">Демонстрационный режим</span>}
-      {process.env.NODE_ENV === "development" && <button className="reset-limit" onClick={resetLimit}>Сбросить demo-лимит</button>}</div>
+      {remaining === 0 && <button className="reset-limit" onClick={resetLimit}>Сбросить 3 бесплатных вопроса</button>}</div>
     <p className="fine">Ответ формируется по проверенной демонстрационной базе. AI-помощник может уточнить конфигурацию и версию 1С.</p>
     {(asked || loading || error) && <div className="result show">{loading && <><div className="query"><span>?</span><div>{asked}</div></div><div className="loader show"><i className="spinner" />Ищу по материалам БухЭксперта…</div></>}
       {error && <div className="error-state"><b>Не удалось получить ответ</b><p>{error}</p><button className="outline modal-button" onClick={() => submit(asked)}>Повторить запрос</button></div>}
       {answer && <AiAnswer question={asked} answer={answer} onReset={reset} onSubscribe={() => onSubscribe("answer_paywall")} onConsult={() => onConsult("answer_paywall")} />}</div>}
-    {remaining === 0 && !answer && <div className="limit-state"><b>Бесплатные вопросы закончились</b><p>Откройте полный доступ, чтобы продолжить работу с AI-помощником.</p><button className="primary-btn modal-button" onClick={() => onSubscribe("limit_inline")}>Открыть полный доступ</button></div>}
+    {remaining === 0 && !answer && <div className="limit-state"><b>Бесплатные вопросы закончились</b><p>Откройте полный доступ, чтобы продолжить работу с AI-помощником, или сбросьте демонстрационный лимит.</p><div className="result-actions"><button className="primary-btn modal-button" onClick={() => onSubscribe("limit_inline")}>Открыть полный доступ</button><button className="secondary-link" onClick={resetLimit}>Сбросить 3 вопроса</button></div></div>}
   </section>;
 }

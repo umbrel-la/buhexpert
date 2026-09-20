@@ -3,7 +3,7 @@ import { createAiAnswer } from "@/lib/ai";
 import { searchMaterials } from "@/lib/search";
 
 const LIMIT = 3;
-const COOKIE = "buhexpert_demo_queries";
+const COOKIE = "buhexpert_demo_queries_v2";
 
 export async function GET(request: NextRequest) {
   const used = Math.max(0, Number.parseInt(request.cookies.get(COOKIE)?.value || "0", 10) || 0);
@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  if (process.env.NODE_ENV === "production") return NextResponse.json({ error: "Недоступно." }, { status: 404 });
   const response = NextResponse.json({ remainingQueries: LIMIT });
   response.cookies.set(COOKIE, "0", { httpOnly: true, sameSite: "lax", path: "/" });
   return response;
